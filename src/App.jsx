@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-// ErrorBoundary Component
+// ✅ ErrorBoundary Component
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -10,21 +10,119 @@ class ErrorBoundary extends React.Component {
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch(error, errorInfo) {
-    console.error("Error Boundary caught:", error, errorInfo);
+  componentDidCatch(error, info) {
+    console.error("Error caught by boundary:", error, info);
   }
   render() {
-    if (this.state.hasError) {
-      return (
-        <div className="text-center text-danger mt-5">
-          <h2>Something went wrong. Please reload.</h2>
-        </div>
-      );
-    }
-    return this.props.children;
+    return this.state.hasError ? (
+      <div className="text-center text-danger mt-5">
+        <h2>⚠ Something went wrong. Please reload.</h2>
+      </div>
+    ) : (
+      this.props.children
+    );
   }
 }
 
+// ✅ Reusable Card Component (used for both category & recipe cards)
+const CardItem = ({ image, title, text, onClick, btnText, btnClass }) => (
+  <div className="col-12 col-sm-6 col-md-4 col-lg-3 d-flex">
+    <div
+      className="card shadow-sm border-0 text-center w-100 cursor-pointer"
+      onClick={onClick}
+      style={{ cursor: onClick ? "pointer" : "default" }}
+    >
+      <img
+        src={image}
+        alt={title}
+        className="card-img-top"
+        style={{ height: "200px", objectFit: "cover" }}
+      />
+      <div className="card-body d-flex flex-column">
+        <h5 className="card-title fw-semibold text-dark">{title}</h5>
+        {text && <p className="text-muted small">{text}</p>}
+        {btnText && (
+          <button onClick={onClick} className={`btn ${btnClass} mt-auto`}>
+            {btnText}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+// ✅ Recipe Modal Component
+const RecipeModal = ({ recipe, onClose }) => {
+  if (!recipe) return null;
+  return (
+    <div
+      className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex justify-content-center align-items-center"
+      style={{ zIndex: 1050 }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded shadow-lg p-4 overflow-auto position-relative"
+        style={{ maxWidth: "640px", maxHeight: "85vh", width: "92%" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="btn-close position-absolute top-0 end-0 m-3"
+          aria-label="Close"
+        ></button>
+
+        <h3 className="fw-bold mb-3 text-center">{recipe.strMeal}</h3>
+        <img
+          src={recipe.strMealThumb}
+          alt={recipe.strMeal}
+          className="img-fluid rounded mb-3"
+          style={{ maxHeight: "260px", objectFit: "cover", width: "100%" }}
+        />
+
+        <h5 className="text-start">Ingredients:</h5>
+        <ul className="text-start small">
+          {Array.from({ length: 20 }, (_, i) => i + 1)
+            .map((i) => {
+              const ing = recipe[`strIngredient${i}`];
+              const meas = recipe[`strMeasure${i}`];
+              return ing ? (
+                <li key={i}>
+                  {ing} {meas ? `— ${meas}` : ""}
+                </li>
+              ) : null;
+            })
+            .filter(Boolean)}
+        </ul>
+
+        <h5 className="mt-3 text-start">Instructions:</h5>
+        <p className="text-start small" style={{ whiteSpace: "pre-line" }}>
+          {recipe.strInstructions}
+        </p>
+
+        {recipe.strYoutube && (
+          <div className="text-center mt-3">
+            <a
+              href={recipe.strYoutube}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-danger"
+            >
+              ▶ Watch on YouTube
+            </a>
+          </div>
+        )}
+
+        <div className="text-center mt-4">
+          <button onClick={onClose} className="btn btn-outline-dark px-4">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ✅ Main App Component
 const App = () => {
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState([]);
@@ -34,98 +132,78 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState(null);
 
-  // Fetch Categories
+  // 🔹 Fetch Categories once
   useEffect(() => {
-    const fetchCategories = async () => {
-      setLoading(true);
-      setError(null);
+    const loadCategories = async () => {
       try {
-        const res = await fetch(
-          "https://www.themealdb.com/api/json/v1/1/categories.php"
-        );
-        if (!res.ok) throw new Error("Network response was not ok");
+        setLoading(true);
+        const res = await fetch("https://www.themealdb.com/api/json/v1/1/categories.php");
         const data = await res.json();
         setCategories(data.categories || []);
       } catch {
-        setError("Failed to load categories. Please try again.");
-        setCategories([]);
+        setError("⚠ Failed to load categories.");
       } finally {
         setLoading(false);
       }
     };
-    fetchCategories();
+    loadCategories();
   }, []);
 
-  // Fetch Recipes (by search or category)
+  // 🔹 Fetch Recipes
   const fetchRecipes = async (term) => {
     if (!term.trim()) return;
-    setLoading(true);
-    setError(null);
-    setSearchTerm(term);
     try {
+      setLoading(true);
+      setError(null);
+      setSearchTerm(term);
       const res = await fetch(
-        `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(
-          term
-        )}`
+        `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(term)}`
       );
-      if (!res.ok) throw new Error("Network response was not ok");
       const data = await res.json();
       setRecipes(data.meals || []);
-      if (!data.meals) setError("No recipes found for that search term.");
+      if (!data.meals) setError("No recipes found.");
     } catch {
-      setError("Failed to load recipes. Check your connection or try again.");
-      setRecipes([]);
+      setError("⚠ Failed to load recipes. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Search Submit
   const handleSearch = (e) => {
     e.preventDefault();
-    if (!query.trim()) return;
-    fetchRecipes(query);
+    if (query.trim()) fetchRecipes(query);
     setQuery("");
   };
 
-  // Back to Home
   const goBackHome = () => {
     setRecipes([]);
     setSearchTerm("");
     setError(null);
   };
 
-  // Fetch full recipe details when clicked
-  const fetchRecipeDetails = async (idMeal) => {
+  const fetchRecipeDetails = async (id) => {
     try {
-      const res = await fetch(
-        `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${idMeal}`
-      );
+      const res = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`);
       const data = await res.json();
-      setSelectedRecipe(data.meals[0]);
+      setSelectedRecipe(data.meals?.[0]);
     } catch {
       alert("Failed to fetch recipe details.");
     }
   };
 
-  const closeRecipeDetails = () => setSelectedRecipe(null);
-
-  // Close modal on ESC key
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") closeRecipeDetails();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const handleEsc = (e) => e.key === "Escape" && setSelectedRecipe(null);
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
   return (
     <ErrorBoundary>
-      <div className="min-vh-100 bg-light px-5 py-4">
+      <div className="min-vh-100 bg-light px-5 py-4 d-flex flex-column align-items-center">
         <div className="container text-center">
           <h1 className="mb-4 fw-bold text-dark">🍽️ Recipe Ideas Finder</h1>
 
-          {/* Search Bar */}
+          {/* 🔹 Search Bar */}
           <form
             onSubmit={handleSearch}
             className="d-flex justify-content-center mb-4 gap-2"
@@ -136,189 +214,67 @@ const App = () => {
               className="form-control w-50"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              autoFocus
             />
             <button type="submit" className="btn btn-danger" disabled={loading}>
               {loading ? "Searching..." : "Search"}
             </button>
           </form>
 
-          {/* Back Button */}
+          {/* 🔹 Back Button */}
           {searchTerm && (
-            <div className="text-center mb-4">
-              <button onClick={goBackHome} className="btn btn-outline-secondary">
-                ⬅ Back to Categories
-              </button>
-            </div>
+            <button onClick={goBackHome} className="btn btn-outline-secondary mb-4">
+              ⬅ Back to Categories
+            </button>
           )}
 
-          {/* Categories Section */}
+          {/* 🔹 Categories */}
           {!searchTerm && !loading && (
             <>
               <h4 className="text-secondary mb-4">Explore Recipe Categories</h4>
               <div className="row g-4 justify-content-center">
                 {categories.map((cat) => (
-                  <div
+                  <CardItem
                     key={cat.idCategory}
-                    className="col-12 col-sm-6 col-md-4 col-lg-3"
-                  >
-                    <div
-                      className="card h-100 shadow-sm border-0 text-center"
-                      onClick={() => fetchRecipes(cat.strCategory)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <img
-                        src={cat.strCategoryThumb}
-                        alt={cat.strCategory}
-                        className="card-img-top"
-                        style={{ height: "180px", objectFit: "cover" }}
-                      />
-                      <div className="card-body">
-                        <h5 className="card-title fw-semibold text-dark">
-                          {cat.strCategory}
-                        </h5>
-                        <p className="text-muted small">
-                          {cat.strCategoryDescription.slice(0, 60)}...
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                    image={cat.strCategoryThumb}
+                    title={cat.strCategory}
+                    text={cat.strCategoryDescription.slice(0, 60) + "..."}
+                    onClick={() => fetchRecipes(cat.strCategory)}
+                  />
                 ))}
               </div>
             </>
           )}
 
-          {/* Loading / Error */}
-          {loading && (
-            <p className="text-center text-secondary mt-4">Loading...</p>
-          )}
-          {error && <p className="text-center text-danger mt-4">{error}</p>}
-
-          {/* Recipes Section */}
-          {!loading && searchTerm && !error && (
+          {/* 🔹 Recipes */}
+          {!loading && searchTerm && (
             <>
               <h4 className="mt-3 mb-4 text-secondary">
                 Showing recipes for:{" "}
                 <span className="text-dark fw-semibold">{searchTerm}</span>
               </h4>
               <div className="row g-4 justify-content-center">
-                {recipes.map((recipe) => (
-                  <div
-                    key={recipe.idMeal}
-                    className="col-12 col-sm-6 col-md-4 col-lg-3"
-                  >
-                    <div className="card h-100 shadow-sm border-0">
-                      <img
-                        src={recipe.strMealThumb}
-                        alt={recipe.strMeal}
-                        className="card-img-top"
-                        style={{ height: "200px", objectFit: "cover" }}
-                      />
-                      <div className="card-body d-flex flex-column">
-                        <h5 className="card-title">{recipe.strMeal}</h5>
-                        <p className="text-muted mb-3">
-                          Category: {recipe.strCategory || "N/A"}
-                        </p>
-                        <button
-                          onClick={() => fetchRecipeDetails(recipe.idMeal)}
-                          className="btn btn-success mt-auto"
-                        >
-                          View Recipe
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                {recipes.map((r) => (
+                  <CardItem
+                    key={r.idMeal}
+                    image={r.strMealThumb}
+                    title={r.strMeal}
+                    text={`Category: ${r.strCategory || "N/A"}`}
+                    onClick={() => fetchRecipeDetails(r.idMeal)}
+                    btnText="View Recipe"
+                    btnClass="btn-success"
+                  />
                 ))}
               </div>
             </>
           )}
 
-          {/* Recipe Modal */}
-          {selectedRecipe && (
-            <div
-              className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex justify-content-center align-items-center"
-              style={{ zIndex: 1050 }}
-              onClick={closeRecipeDetails} // close on backdrop click
-            >
-              <div
-                className="bg-white rounded shadow-lg p-4 overflow-auto position-relative"
-                style={{
-                  maxWidth: "640px",
-                  maxHeight: "85vh",
-                  width: "92%",
-                  border: "1px solid #ddd",
-                }}
-                onClick={(e) => e.stopPropagation()} // prevent backdrop close when clicking inside
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="recipe-title"
-              >
-                {/* Close button (visible & accessible) */}
-                <button
-                  onClick={closeRecipeDetails}
-                  className="btn-close position-absolute top-0 end-0 m-3"
-                  aria-label="Close recipe details"
-                  title="Close"
-                ></button>
-
-                <h3 id="recipe-title" className="fw-bold mb-3 text-center">
-                  {selectedRecipe.strMeal}
-                </h3>
-
-                <img
-                  src={selectedRecipe.strMealThumb}
-                  alt={selectedRecipe.strMeal}
-                  className="img-fluid rounded mb-3"
-                  style={{ maxHeight: "260px", objectFit: "cover", width: "100%" }}
-                />
-
-                <h5 className="text-start">Ingredients:</h5>
-                <ul className="text-start small">
-                  {Array.from({ length: 20 }, (_, i) => i + 1)
-                    .map((i) => {
-                      const ingredient = selectedRecipe[`strIngredient${i}`];
-                      const measure = selectedRecipe[`strMeasure${i}`];
-                      return ingredient
-                        ? (
-                          <li key={i}>
-                            {ingredient} {measure ? `— ${measure}` : ""}
-                          </li>
-                        )
-                        : null;
-                    })
-                    .filter(Boolean)}
-                </ul>
-
-                <h5 className="mt-3 text-start">Instructions:</h5>
-                <p className="text-start small" style={{ whiteSpace: "pre-line" }}>
-                  {selectedRecipe.strInstructions}
-                </p>
-
-                {selectedRecipe.strYoutube && (
-                  <div className="text-center mt-3">
-                    <a
-                      href={selectedRecipe.strYoutube}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-danger"
-                    >
-                      ▶ Watch on YouTube
-                    </a>
-                  </div>
-                )}
-                 {/* ✅ Close Button (inside the card) */}
-                <div className="text-center mt-4">
-                  <button
-                    onClick={closeRecipeDetails}
-                    className="btn btn-outline-dark px-4"
-                  >
-                     Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* 🔹 Error / Loading */}
+          {loading && <p className="text-secondary mt-4">Loading...</p>}
+          {error && <p className="text-danger mt-4">{error}</p>}
         </div>
+
+        {/* 🔹 Recipe Modal */}
+        <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
       </div>
     </ErrorBoundary>
   );
