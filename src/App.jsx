@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-// ✅ ErrorBoundary Component
+//  ErrorBoundary Component
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -24,7 +24,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// ✅ Reusable Card Component (used for both category & recipe cards)
+//  Reusable Card Component (used for both category & recipe cards)
 const CardItem = ({ image, title, text, onClick, btnText, btnClass }) => (
   <div className="col-12 col-sm-6 col-md-4 col-lg-3 d-flex">
     <div
@@ -51,7 +51,7 @@ const CardItem = ({ image, title, text, onClick, btnText, btnClass }) => (
   </div>
 );
 
-// ✅ Recipe Modal Component
+//  Recipe Modal Component
 const RecipeModal = ({ recipe, onClose }) => {
   if (!recipe) return null;
   return (
@@ -122,7 +122,7 @@ const RecipeModal = ({ recipe, onClose }) => {
   );
 };
 
-// ✅ Main App Component
+//  Main App Component
 const App = () => {
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState([]);
@@ -132,7 +132,7 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState(null);
 
-  // 🔹 Fetch Categories once
+  //  Fetch Categories once
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -149,7 +149,7 @@ const App = () => {
     loadCategories();
   }, []);
 
-  // 🔹 Fetch Recipes
+  //  Fetch Recipes
   const fetchRecipes = async (term) => {
     if (!term.trim()) return;
     try {
@@ -203,7 +203,7 @@ const App = () => {
         <div className="container text-center">
           <h1 className="mb-4 fw-bold text-dark">🍽️ Recipe Ideas Finder</h1>
 
-          {/* 🔹 Search Bar */}
+          {/*  Search Bar */}
           <form
             onSubmit={handleSearch}
             className="d-flex justify-content-center mb-4 gap-2"
@@ -220,14 +220,14 @@ const App = () => {
             </button>
           </form>
 
-          {/* 🔹 Back Button */}
+          {/*  Back Button */}
           {searchTerm && (
             <button onClick={goBackHome} className="btn btn-outline-secondary mb-4">
               ⬅ Back to Categories
             </button>
           )}
 
-          {/* 🔹 Categories */}
+          {/*  Categories */}
           {!searchTerm && !loading && (
             <>
               <h4 className="text-secondary mb-4">Explore Recipe Categories</h4>
@@ -245,7 +245,7 @@ const App = () => {
             </>
           )}
 
-          {/* 🔹 Recipes */}
+          {/*  Recipes */}
           {!loading && searchTerm && (
             <>
               <h4 className="mt-3 mb-4 text-secondary">
@@ -268,12 +268,12 @@ const App = () => {
             </>
           )}
 
-          {/* 🔹 Error / Loading */}
+          {/* Error / Loading */}
           {loading && <p className="text-secondary mt-4">Loading...</p>}
           {error && <p className="text-danger mt-4">{error}</p>}
         </div>
 
-        {/* 🔹 Recipe Modal */}
+        {/* Recipe Modal */}
         <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
       </div>
     </ErrorBoundary>
