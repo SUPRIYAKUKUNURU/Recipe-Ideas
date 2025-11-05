@@ -163,7 +163,7 @@ const App = () => {
       setRecipes(data.meals || []);
       if (!data.meals) setError("No recipes found.");
     } catch {
-      setError("⚠ Failed to load recipes. Try again.");
+      setError("Failed to load recipes. Try again.");
     } finally {
       setLoading(false);
     }
